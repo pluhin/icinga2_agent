@@ -1,1 +1,3 @@
-# icinga2_agent
+# Icinga2 agent
+
+Docker file for icinga2 agent with activated API
