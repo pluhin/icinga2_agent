@@ -1,21 +1,36 @@
-FROM alpine:latest
+FROM centos:7
 
 LABEL maintainer="pluhin@gmail.com"
 
-RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories \
-    && echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
-	&& apk update \
-	&& apk add icinga2 bash \
-	&& /usr/sbin/icinga2 feature enable command checker mainlog notification \
-	&& /usr/sbin/icinga2 api setup
+ENV ICINGA2_VERSION="2.10.4" \
+    TIMEZONE="UTC" \
+    ICINGA_API_PASS="QwertY_13" \
+    ICINGA_LOGLEVEL=warning \
+    ICINGA_FEATURES="api"
+RUN rpm --import http://packages.icinga.org/icinga.key \
+    && curl -sSL http://packages.icinga.org/epel/ICINGA-release.repo > /etc/yum.repos.d/ICINGA-release.repo \
+    && yum -y install epel-release deltarpm  \
+    && yum -y install \
+      vim \
+      wget \
+      jq \
+      net-tools \
+      openssl \
+      nagios-plugins* \
+      perl-Crypt-Rijndael bc \
+    && sed -i 's~nodocs~~g' /etc/yum.conf \
+    && yum -y install \
+      icinga2-$ICINGA2_VERSION \
+    && chsh -s /bin/bash icinga \
+    && su icinga -c 'cp /etc/skel/.bash* /var/spool/icinga2' \
+    && chmod u+s /usr/bin/ping \
+    && yum clean all && rm -rf /var/yum/cache \
+    && localedef -f UTF-8 -i en_US en_US.UTF-8 \
+    && wget -O /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_amd64 \
+    && chmod +x /usr/local/bin/dumb-init
 
-VOLUME [ "/etc/icinga2", "/var/lib/icinga2" ]
-
-HEALTHCHECK \
-  --interval=5s \
-  --timeout=2s \
-  --retries=12 \
-  --start-period=10s \
-CMD ps ax | grep -v grep | grep -c "/usr/lib/icinga2/sbin/icinga2" || exit 1
+ADD content /
 
 EXPOSE 5665
+
+CMD ["/init/run.sh"]
