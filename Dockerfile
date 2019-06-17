@@ -33,4 +33,6 @@ ADD content /
 
 EXPOSE 5665
 
+VOLUME [ "/var/lib/icinga2", "/etc/icinga2", "/tmp" ]
+
 CMD ["/init/run.sh"]
